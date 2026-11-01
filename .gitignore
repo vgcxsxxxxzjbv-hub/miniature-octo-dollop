@@ -1,0 +1,7 @@
+build/
+build-*/
+library/
+*.apk
+*.keystore
+*.jks
+libspinox-library.zip
