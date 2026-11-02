@@ -26,28 +26,37 @@ static void instrument_cb(void* addr, DobbyRegisterContext* ctx) {
     Ctx* c = findCtx(addr);
     if (!c) return;
     Entry& e = c->entry;
+
     switch (e.mode) {
         case MODE_LOG: {
 #if defined(__aarch64__)
             LOGI("[%s] x0=%p x1=%p x2=%p x3=%p", e.name.c_str(),
                 (void*)ctx->general.x[0], (void*)ctx->general.x[1],
                 (void*)ctx->general.x[2], (void*)ctx->general.x[3]);
-#else
+#elif defined(__arm__)
             LOGI("[%s] r0=%08x r1=%08x r2=%08x r3=%08x", e.name.c_str(),
                 (unsigned)ctx->general.r[0], (unsigned)ctx->general.r[1],
                 (unsigned)ctx->general.r[2], (unsigned)ctx->general.r[3]);
+#else
+            (void)ctx;
+            LOGI("[%s] called @ %p (register dump unsupported)", e.name.c_str(), addr);
 #endif
             break;
         }
         case MODE_ARG: {
+#if defined(__aarch64__) || defined(__arm__)
             int idx = e.argIndex;
             if (idx < 0 || idx > 7) break;
-#if defined(__aarch64__)
+            #if defined(__aarch64__)
             ctx->general.x[idx] = (uint64_t)e.argVal;
-#else
+            #else
             ctx->general.r[idx] = (uint32_t)e.argVal;
-#endif
+            #endif
             LOGI("[%s] arg%d = %lld", e.name.c_str(), idx, (long long)e.argVal);
+#else
+            (void)ctx;
+            LOGI("[%s] arg override unsupported", e.name.c_str());
+#endif
             break;
         }
         default: break;
